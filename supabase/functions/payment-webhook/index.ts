@@ -1,6 +1,14 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 
+// Interface representing the expected payload from Cham Cash
+interface ChamCashWebhook {
+  transaction_id: string; // The unique event ID for idempotency
+  order_id: string;       // Our internal UUID
+  status: 'success' | 'failed';
+  amount: number;
+}
+
 serve(async (req: Request) => {
   try {
     // 1. Only allow POST requests
@@ -11,19 +19,29 @@ serve(async (req: Request) => {
       })
     }
 
-    // 2. Parse the incoming JSON payload (assuming transaction_id and order_id)
-    const payload = await req.json()
-    const { transaction_id, order_id } = payload
+    // 2. Parse the incoming JSON payload
+    const payload: ChamCashWebhook = await req.json()
 
-    if (!transaction_id || !order_id) {
-      return new Response(JSON.stringify({ error: 'Missing transaction_id or order_id' }), {
+    // Validate required fields
+    if (!payload.transaction_id || !payload.order_id || !payload.status) {
+      return new Response(JSON.stringify({ error: 'Missing required webhook fields' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       })
     }
 
-    // 3. Initialize the Supabase Client with the Service Role Key
-    // This allows the function to bypass RLS and securely call the RPC
+    // 3. Logic Flow: Handle non-success statuses immediately
+    if (payload.status !== 'success') {
+      console.log(`Payment failed or pending for order ${payload.order_id}. Status: ${payload.status}`)
+      // Return 200 OK so the provider knows we received it and doesn't retry
+      return new Response(JSON.stringify({ message: 'Webhook received, no action taken due to status.' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    // 4. Initialize the Supabase Client with the Service Role Key
+    // This allows the function to bypass RLS and securely execute the RPC
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
@@ -34,31 +52,44 @@ serve(async (req: Request) => {
       }
     })
 
-    // 4. Call the idempotent RPC function
+    // 5. Call the idempotent RPC function
     const { data, error } = await supabase.rpc('finalize_payment', {
-      p_order_id: order_id,
-      p_event_id: transaction_id,
+      p_order_id: payload.order_id,
+      p_event_id: payload.transaction_id,
     })
 
+    // 6. Error Handling & Idempotency Responses
     if (error) {
       console.error('RPC Error:', error)
+
+      // Catch specific PostgreSQL unique constraint violation (code 23505) if the RPC throws it
+      // Note: Our RPC currently handles this internally and returns a success object with already_processed: true,
+      // but this acts as a robust fallback just in case the RPC is modified to throw the error instead.
+      if (error.code === '23505') {
+        console.log(`Webhook already processed (caught via 23505) for event: ${payload.transaction_id}`)
+        return new Response(JSON.stringify({ message: 'Webhook already processed' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+
       return new Response(JSON.stringify({ error: 'Database error finalizing payment' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       })
     }
 
-    // If the data object indicates it was already processed, still return 200 OK
-    // to acknowledge the webhook and stop the provider from retrying.
+    // Handle idempotency from our specific RPC logic (returns 200)
     if (data && data.already_processed) {
-      console.log(`Webhook already processed for event: ${transaction_id}`)
+      console.log(`Webhook already processed (caught via RPC data) for event: ${payload.transaction_id}`)
       return new Response(JSON.stringify(data), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       })
     }
 
-    // 5. Return Success
+    // Return Success
+    console.log(`Payment finalized successfully for order ${payload.order_id}`)
     return new Response(JSON.stringify(data), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
