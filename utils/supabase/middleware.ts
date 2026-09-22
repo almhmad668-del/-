@@ -59,7 +59,9 @@ export async function updateSession(request: NextRequest) {
        .single()
 
      const role = profile?.role || 'buyer'
-     if (role !== 'vendor' && role !== 'admin' && role !== 'super_admin' && role !== 'vendor_staff') {
+     // Allow 'buyer' to access /vendor ONLY so they can see the 'Pending' trap in the layout.
+     // If they aren't even a pending vendor, the layout will redirect them to /apply-vendor.
+     if (role !== 'buyer' && role !== 'vendor' && role !== 'admin' && role !== 'super_admin' && role !== 'vendor_staff') {
        const url = request.nextUrl.clone()
        url.pathname = '/'
        const redirectResponse = NextResponse.redirect(url)
