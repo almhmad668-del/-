@@ -53,7 +53,7 @@ export async function updateSession(request: NextRequest) {
        .eq('id', user.id)
        .single()
 
-     const role = profile?.role || 'customer'
+     const role = profile?.role || 'buyer'
      if (role !== 'vendor' && role !== 'admin' && role !== 'super_admin' && role !== 'vendor_staff') {
        const url = request.nextUrl.clone()
        url.pathname = '/'
@@ -68,7 +68,7 @@ export async function updateSession(request: NextRequest) {
        .eq('id', user.id)
        .single()
 
-     const role = profile?.role || 'customer'
+     const role = profile?.role || 'buyer'
      if (role !== 'admin' && role !== 'super_admin') {
        const url = request.nextUrl.clone()
        url.pathname = '/'
