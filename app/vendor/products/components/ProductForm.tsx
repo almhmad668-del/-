@@ -5,6 +5,9 @@ import { createProduct, updateProduct } from '../actions'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+import { useEffect } from 'react'
+import { createClient } from '@/utils/supabase/client'
+
 interface ProductFormProps {
   productId?: string
   initialData?: {
@@ -16,10 +19,22 @@ interface ProductFormProps {
     stock_quantity: number
     status: string
     main_image_url: string | null
+    category_id: string | null
   }
 }
 
 export default function ProductForm({ productId, initialData }: ProductFormProps) {
+  const [categories, setCategories] = useState<{ id: string, name: string }[]>([])
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const supabase = createClient()
+      const { data } = await supabase.from('categories').select('id, name').order('name')
+      // RLS on categories allows public select where is_active = true, so this is safe and will only fetch active categories
+      if (data) setCategories(data)
+    }
+    fetchCategories()
+  }, [])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
@@ -68,6 +83,16 @@ export default function ProductForm({ productId, initialData }: ProductFormProps
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
         <textarea name="description" id="description" defaultValue={initialData?.description || ''} rows={3} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-2"></textarea>
+      </div>
+
+      <div>
+        <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700">Category</label>
+        <select name="categoryId" id="categoryId" required defaultValue={initialData?.category_id || ''} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-2 bg-white">
+          <option value="" disabled>Select a category</option>
+          {categories.map(cat => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          ))}
+        </select>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

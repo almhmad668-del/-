@@ -65,16 +65,24 @@ export async function createProduct(formData: FormData) {
     const slug = formData.get('slug') as string
     const description = formData.get('description') as string
     const sku = formData.get('sku') as string
+    const categoryId = formData.get('categoryId') as string
     const price = parseFloat(formData.get('price') as string)
     const stockQuantity = parseInt(formData.get('stockQuantity') as string, 10)
     const status = formData.get('status') as string || 'draft'
 
-    if (!name || !slug || isNaN(price) || isNaN(stockQuantity) || price < 0 || stockQuantity < 0) {
+    if (!name || !slug || !categoryId || isNaN(price) || isNaN(stockQuantity) || price < 0 || stockQuantity < 0) {
       return { error: 'Invalid product data provided.' }
+    }
+
+    // Verify category is active
+    const { data: category } = await supabase.from('categories').select('id').eq('id', categoryId).eq('is_active', true).single()
+    if (!category) {
+      return { error: 'Invalid or inactive category selected.' }
     }
 
     const { error } = await supabase.from('products').insert({
       vendor_id: vendorId, // SERVER CONTROLLED: Never trust client input for ownership
+      category_id: categoryId,
       name,
       slug,
       description,
@@ -111,13 +119,20 @@ export async function updateProduct(productId: string, formData: FormData) {
     const slug = formData.get('slug') as string
     const description = formData.get('description') as string
     const sku = formData.get('sku') as string
+    const categoryId = formData.get('categoryId') as string
     const price = parseFloat(formData.get('price') as string)
     const stockQuantity = parseInt(formData.get('stockQuantity') as string, 10)
     const status = formData.get('status') as string || 'draft'
     const mainImageUrl = formData.get('mainImageUrl') as string
 
-    if (!name || !slug || isNaN(price) || isNaN(stockQuantity) || price < 0 || stockQuantity < 0) {
+    if (!name || !slug || !categoryId || isNaN(price) || isNaN(stockQuantity) || price < 0 || stockQuantity < 0) {
       return { error: 'Invalid product data provided.' }
+    }
+
+    // Verify category is active
+    const { data: category } = await supabase.from('categories').select('id').eq('id', categoryId).eq('is_active', true).single()
+    if (!category) {
+      return { error: 'Invalid or inactive category selected.' }
     }
 
     const { error } = await supabase
@@ -127,6 +142,7 @@ export async function updateProduct(productId: string, formData: FormData) {
         slug,
         description,
         sku: sku || null, // Map empty string to null to prevent unique constraint conflicts
+        category_id: categoryId,
         price,
         stock_quantity: stockQuantity,
         status,
