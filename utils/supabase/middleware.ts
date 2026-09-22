@@ -42,7 +42,12 @@ export async function updateSession(request: NextRequest) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    return NextResponse.redirect(url)
+    const redirectResponse = NextResponse.redirect(url)
+    // IMPORTANT: Copy cookies to the new response to preserve session updates
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value)
+    })
+    return redirectResponse
   }
 
   // Robust role-based routing check based on the public.profiles table
@@ -57,7 +62,11 @@ export async function updateSession(request: NextRequest) {
      if (role !== 'vendor' && role !== 'admin' && role !== 'super_admin' && role !== 'vendor_staff') {
        const url = request.nextUrl.clone()
        url.pathname = '/'
-       return NextResponse.redirect(url)
+       const redirectResponse = NextResponse.redirect(url)
+       supabaseResponse.cookies.getAll().forEach((cookie) => {
+         redirectResponse.cookies.set(cookie.name, cookie.value)
+       })
+       return redirectResponse
      }
   }
 
@@ -72,7 +81,11 @@ export async function updateSession(request: NextRequest) {
      if (role !== 'admin' && role !== 'super_admin') {
        const url = request.nextUrl.clone()
        url.pathname = '/'
-       return NextResponse.redirect(url)
+       const redirectResponse = NextResponse.redirect(url)
+       supabaseResponse.cookies.getAll().forEach((cookie) => {
+         redirectResponse.cookies.set(cookie.name, cookie.value)
+       })
+       return redirectResponse
      }
   }
 
