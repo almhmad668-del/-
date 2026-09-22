@@ -123,4 +123,31 @@ conditionalDescribe('Security & Row Level Security (RLS) Live Tests', () => {
       // Ensure NextResponse.redirect correctly maps cookies.
     });
   });
+
+  describe('4. Phase 4: Product Catalog Isolation', () => {
+    it('Buyer cannot create a product', async () => {
+      // Create user (buyer). Try to insert into products. Expect RLS blocked.
+    });
+
+    it('Approved vendor can create a product', async () => {
+      // Insert into products with matching vendor_id. Expect success.
+    });
+
+    it('Vendor cannot edit another vendor\'s product', async () => {
+      // Vendor A tries to update product owned by Vendor B. Expect RLS blocked (0 rows updated).
+    });
+
+    it('Vendor cannot change product ownership', async () => {
+      // Vendor A tries to UPDATE products SET vendor_id = B.
+      // Expect RLS to block because the WITH CHECK clause mandates has_vendor_access(NEW.vendor_id).
+    });
+
+    it('Pending vendor cannot manage products', async () => {
+      // Server Action `getAuthorizedVendorId` enforces status === 'approved'.
+    });
+
+    it('Duplicate slug/SKU is rejected safely', async () => {
+      // Attempt two INSERTS with the same slug. Expect unique constraint violation (code 23505).
+    });
+  });
 });

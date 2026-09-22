@@ -13,18 +13,33 @@ export default async function VendorLayout({
 
   // Fetch the user's primary vendor connection to establish context
   // We explicitly check the user_id since the RLS SELECT policy is public
+  let activeVendor = null
   const { data: vendors, error } = await supabase
     .from('vendors')
     .select('*')
     .eq('user_id', userData.user.id)
     .limit(1)
 
-  if (error || !vendors || vendors.length === 0) {
+  if (vendors && vendors.length > 0) {
+    activeVendor = vendors[0]
+  } else {
+    // Check if they are active staff via vendor_members
+    const { data: members } = await supabase
+      .from('vendor_members')
+      .select('vendor_id, vendors(*)')
+      .eq('user_id', userData.user.id)
+      .eq('is_active', true)
+      .limit(1)
+
+    if (members && members.length > 0) {
+      activeVendor = (members[0].vendors as unknown as Record<string, unknown>)
+    }
+  }
+
+  if (error || !activeVendor) {
     // User has no vendor access, redirect them to apply
     redirect('/apply-vendor')
   }
-
-  const activeVendor = vendors[0]
 
   // If the vendor is still pending approval, trap them in the pending state
   if (activeVendor.status === 'pending') {
