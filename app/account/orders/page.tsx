@@ -10,7 +10,7 @@ export default async function OrderHistoryPage() {
   const { data: orders } = await supabase
     .from('orders')
     .select(`
-      id, created_at, status, total,
+      id, created_at, status, payment_status, total,
       vendor_orders (id, status, vendor_id, vendors(store_name), order_items(vendor_name_snapshot)),
       order_items (id)
     `)
@@ -41,6 +41,16 @@ export default async function OrderHistoryPage() {
                     <div className="mt-2 sm:mt-0">
                       <span className="block text-xs font-medium text-gray-500 uppercase">Order ID</span>
                       <span className="block text-sm text-gray-900 font-mono">{order.id.slice(0, 8)}...</span>
+                    </div>
+                    <div className="mt-2 sm:mt-0">
+                      <span className="block text-xs font-medium text-gray-500 uppercase">Payment Status</span>
+                      <span className={`block text-sm font-medium capitalize
+                        ${order.payment_status === 'paid' ? 'text-green-600' : ''}
+                        ${order.payment_status === 'pending' ? 'text-yellow-600' : ''}
+                        ${order.payment_status === 'failed' || order.payment_status === 'refunded' ? 'text-red-600' : ''}
+                      `}>
+                        {order.payment_status}
+                      </span>
                     </div>
                   </div>
                   <div>

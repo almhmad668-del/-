@@ -33,9 +33,11 @@ The database is PostgreSQL, acting as the absolute source of truth.
 
 1.  Buyer adds variants to Cart.
 2.  Checkout initiates: Next.js calls a PostgreSQL RPC (`checkout_cart`).
-3.  This single atomic RPC verifies available stock, calculates authoritative totals (using DB `shipping_rules` and `tax_rules`), and generates a multi-vendor order structure.
+3.  This single atomic RPC verifies available stock, calculates authoritative totals (using DB `shipping_rules` and `tax_rules`), and generates a multi-vendor order structure. Inventory is decremented.
 4.  The multi-vendor structure dictates: One `orders` (Master Order), mapping to multiple `vendor_orders` (Sub-Orders, grouped per vendor), which in turn hold `order_items`.
-5.  Phase 10+ will handle executing Payment Intents and resolving webhooks to modify `payment_status`.
+5.  A Next.js server route `/api/stripe/checkout` creates a Stripe Hosted Checkout Session (using exclusively server-derived prices) and inserts a `pending` row into `payments`.
+6.  A unified webhook `/api/stripe/webhook` processes events (`checkout.session.completed`, `checkout.session.expired`). It enforces idempotency via the `stripe_webhook_events` table (using UNIQUE indexes).
+7.  If the webhook receives `expired`, it triggers the `handle_expired_checkout` RPC which safely and exactly once restores the inventory.
 
 ## 5. Strategies
 
