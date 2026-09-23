@@ -32,16 +32,24 @@ The database is PostgreSQL, acting as the absolute source of truth.
 ## 4. Marketplace Order Flow
 
 1.  Buyer adds variants to Cart.
-2.  Checkout initiates: Next.js calls a PostgreSQL RPC (`reserve_inventory()`).
-3.  If inventory is successfully reserved, RPC `create_order_atomic()` creates the master order and splits it into `vendor_orders`.
-4.  Next.js calls an Edge Function to create a Payment Intent.
-5.  Payment Gateway confirms via Webhook (to Edge Function).
-6.  Edge Function calls RPC `confirm_payment()` to finalize order state, finalize inventory deduction, and calculate commissions.
+2.  Checkout initiates: Next.js calls a PostgreSQL RPC (`checkout_cart`).
+3.  This single atomic RPC verifies available stock, calculates authoritative totals (using DB `shipping_rules` and `tax_rules`), and generates a multi-vendor order structure.
+4.  The multi-vendor structure dictates: One `orders` (Master Order), mapping to multiple `vendor_orders` (Sub-Orders, grouped per vendor), which in turn hold `order_items`.
+5.  Phase 10+ will handle executing Payment Intents and resolving webhooks to modify `payment_status`.
 
 ## 5. Strategies
 
+### Order History & Snapshots Strategy
+Historical order facts must NEVER rely on future catalog changes. `order_items` explicitly capture `product_name_snapshot`, `vendor_name_snapshot`, `variant_name_snapshot`, `sku_snapshot`, and `unit_price` precisely at checkout time. These snapshot columns are reused natively; no duplications or catalog joins are used to render `/account/orders`.
+
 ### Inventory Strategy
-Inventory must be updated via PostgreSQL atomic functions. A reservation system (`inventory_reservations`) holds stock temporarily during the checkout flow to prevent overselling.
+Inventory is decremented atomically inside the `checkout_cart` Postgres transaction. If stock is insufficient, the transaction rolls back, aborting the checkout cleanly without partial completions, returning structured JSON indicating the affected products.
+
+### Shipping & Tax Foundation
+Shipping and Taxes are derived autonomously by the backend during checkout. `tax_rules` map optionally to regions, and `shipping_rules` assign flat-rates (either platform-wide or vendor-specific). These dictate the `shipping_total` and `tax_total` fields, preventing any reliance on client-side math.
+
+### Vendor Isolation
+`vendor_orders` separate sub-orders logically. Vendors manage status lifecycles independently for their `vendor_orders`. RLS policies strictly bind access to authorized vendors (via `vendor_members`) and strictly prevent Vendor A from viewing Vendor B's orders or customer's arbitrary data.
 
 ### Payment Strategy
 Payments are initiated via Edge Functions to hide secret keys. Successful payments are confirmed exclusively through secure Webhooks.

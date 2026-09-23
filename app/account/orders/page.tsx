@@ -11,7 +11,7 @@ export default async function OrderHistoryPage() {
     .from('orders')
     .select(`
       id, created_at, status, total,
-      vendor_orders (id, status, vendor_id, vendors(store_name)),
+      vendor_orders (id, status, vendor_id, vendors(store_name), order_items(vendor_name_snapshot)),
       order_items (id)
     `)
     .eq('user_id', userData.user.id)
@@ -54,12 +54,16 @@ export default async function OrderHistoryPage() {
                     Status: <span className="capitalize">{order.status}</span>
                   </p>
                   <div className="space-y-2">
-                    {order.vendor_orders.map((vo: any) => (
-                      <div key={vo.id} className="flex justify-between items-center text-sm border-t pt-2">
-                        <span className="text-gray-700">{vo.vendors?.store_name}</span>
-                        <span className="text-gray-500 capitalize">{vo.status}</span>
-                      </div>
-                    ))}
+                    {order.vendor_orders.map((vo: any) => {
+                      // Fallback to vendors(store_name) if snapshot is missing, but prioritize the snapshot from the first item
+                      const snapshotName = vo.order_items?.[0]?.vendor_name_snapshot;
+                      return (
+                        <div key={vo.id} className="flex justify-between items-center text-sm border-t pt-2">
+                          <span className="text-gray-700">{snapshotName || vo.vendors?.store_name}</span>
+                          <span className="text-gray-500 capitalize">{vo.status}</span>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               </div>

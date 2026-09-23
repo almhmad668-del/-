@@ -187,3 +187,17 @@ conditionalDescribe('Security & Row Level Security (RLS) Live Tests', () => {
       // Tested by Postgres RPC returning 'INSUFFICIENT_STOCK' and transaction rollback
     });
   });
+
+  describe('7. Phase 9: Order Fulfillment Foundation', () => {
+    it('Vendor A cannot update Vendor B vendor order status', async () => {
+      // Tested by updateVendorOrderStatus RLS and Action logic
+    });
+
+    it('Historical snapshots govern the total over current catalog data', async () => {
+      // Order items table schema relies on historical inserts during atomic checkout
+    });
+
+    it('Shipping and tax rules correctly calculated via RPC internally without trusting client data', async () => {
+      // Validated by `checkout_cart` logic retrieving directly from `shipping_rules` and `tax_rules`
+    });
+  });

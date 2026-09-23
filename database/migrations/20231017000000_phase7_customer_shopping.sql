@@ -113,8 +113,12 @@ CREATE TRIGGER set_customer_addresses_updated_at
 
 -- Function to safely change default address
 CREATE OR REPLACE FUNCTION public.set_default_address(p_user_id UUID, p_address_id UUID)
-RETURNS VOID AS $$
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
+  IF auth.uid() IS NULL OR auth.uid() != p_user_id THEN
+     RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
   -- Unset existing defaults
   UPDATE public.customer_addresses
   SET is_default = false

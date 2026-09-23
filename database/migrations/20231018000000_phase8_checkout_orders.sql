@@ -101,7 +101,7 @@ CREATE TRIGGER set_order_items_updated_at
 -- If stock is insufficient, it rolls back and returns the structured error payload.
 
 CREATE OR REPLACE FUNCTION public.checkout_cart(p_user_id UUID, p_address_id UUID)
-RETURNS JSON AS $$
+RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_cart_id UUID;
   v_address RECORD;
@@ -121,6 +121,10 @@ DECLARE
   v_line_subtotal NUMERIC;
 
 BEGIN
+  IF auth.uid() IS NULL OR auth.uid() != p_user_id THEN
+     RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
   -- 1. Validate Address
   SELECT * INTO v_address FROM public.customer_addresses WHERE id = p_address_id AND user_id = p_user_id;
   IF NOT FOUND THEN
