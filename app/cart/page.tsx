@@ -127,13 +127,12 @@ export default async function CartPage() {
             </dl>
 
             <div className="mt-6">
-              <button
-                type="button"
-                className="w-full bg-blue-600 border border-transparent rounded-md shadow-sm py-3 px-4 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 focus:ring-blue-500"
-                onClick={() => alert('Checkout flow will be implemented in Phase 8.')}
+              <Link
+                href="/checkout"
+                className="w-full bg-blue-600 border border-transparent rounded-md shadow-sm py-3 px-4 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 focus:ring-blue-500 flex justify-center text-center"
               >
                 Proceed to Checkout
-              </button>
+              </Link>
             </div>
           </div>
         </div>

@@ -17,6 +17,9 @@ export default async function AccountLayout({ children }: { children: React.Reac
           <Link href="/account/addresses" className="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-3 py-2 text-sm font-medium rounded-md">
             Addresses
           </Link>
+          <Link href="/account/orders" className="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-3 py-2 text-sm font-medium rounded-md">
+            Orders
+          </Link>
           <Link href="/cart" className="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-3 py-2 text-sm font-medium rounded-md">
             Cart
           </Link>

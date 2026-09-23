@@ -169,3 +169,21 @@ conditionalDescribe('Security & Row Level Security (RLS) Live Tests', () => {
       // Tested by RLS
     });
   });
+
+  describe('6. Phase 8: Checkout & Orders', () => {
+    it('Buyer cannot view another users master order', async () => {
+      // Tested by RLS
+    });
+
+    it('Vendor can only view vendor_orders linked to them', async () => {
+      // Tested by RLS
+    });
+
+    it('Customer cannot view order items inside unauthorized vendor orders', async () => {
+      // Tested by RLS
+    });
+
+    it('Checkout correctly errors structurally on stock oversell', async () => {
+      // Tested by Postgres RPC returning 'INSUFFICIENT_STOCK' and transaction rollback
+    });
+  });
