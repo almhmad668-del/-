@@ -133,6 +133,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
           <div className="mt-8 border-t border-gray-200 pt-8">
             <VariantSelector
+              productId={product.id}
               options={formattedOptions}
               variants={formattedVariants}
               basePrice={defaultPrice}

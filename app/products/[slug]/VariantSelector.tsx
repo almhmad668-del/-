@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { addToCart } from '@/app/actions/cartActions'
+import { toggleWishlistItem } from '@/app/actions/wishlistActions'
 
 interface OptionValue {
   id: string
@@ -23,15 +25,18 @@ interface Variant {
 }
 
 interface VariantSelectorProps {
+  productId: string
   options: Option[]
   variants: Variant[]
   basePrice: number
   currency: string
 }
 
-export default function VariantSelector({ options, variants, basePrice, currency }: VariantSelectorProps) {
+export default function VariantSelector({ productId, options, variants, basePrice, currency }: VariantSelectorProps) {
   // Map of optionId -> selected optionValueId
   const [selectedValues, setSelectedValues] = useState<Record<string, string>>({})
+  const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Find if there is a matching variant for the current selection
   const selectedVariant = useMemo(() => {
@@ -109,15 +114,45 @@ export default function VariantSelector({ options, variants, basePrice, currency
         </div>
       ))}
 
-      {/* Fake Add to Cart (Phase 6 requirement: Do not implement actual cart) */}
-      <div className="mt-8 flex">
+      {error && (
+        <div className="text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="mt-8 flex space-x-4">
         <button
           type="button"
-          disabled={isOutOfStock || (variants.length > 0 && Object.keys(selectedValues).length < options.length)}
+          disabled={isAddingToCart || isOutOfStock || (variants.length > 0 && Object.keys(selectedValues).length < options.length) || (variants.length > 0 && !selectedVariant)}
           className="flex-1 max-w-xs bg-blue-600 border border-transparent rounded-md py-3 px-8 flex items-center justify-center text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={() => alert("Add to Cart functionality is not implemented in this phase.")}
+          onClick={async () => {
+            setError(null)
+            setIsAddingToCart(true)
+            const result = await addToCart(productId, selectedVariant?.id || null, 1)
+            if (result.error) {
+              setError(result.error)
+            } else {
+              alert('Added to cart')
+            }
+            setIsAddingToCart(false)
+          }}
         >
-          Add to Cart
+          {isAddingToCart ? 'Adding...' : 'Add to Cart'}
+        </button>
+        <button
+          type="button"
+          onClick={async () => {
+            const result = await toggleWishlistItem(productId)
+            if (result.error) {
+              alert(result.error)
+            } else {
+              alert(`Item ${result.action} wishlist!`)
+            }
+          }}
+          className="flex-none p-3 border rounded-md text-gray-500 hover:text-red-500 hover:bg-gray-50 transition"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
         </button>
       </div>
     </div>
